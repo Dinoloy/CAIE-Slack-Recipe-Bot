@@ -1,0 +1,365 @@
+{
+  "name": "CAIE - Slack Recipe Bot",
+  "nodes": [
+    {
+      "parameters": {
+        "trigger": [
+          "message"
+        ],
+        "watchWorkspace": true,
+        "options": {}
+      },
+      "id": "b203f209-5d91-406b-b825-e9f9b137c2af",
+      "name": "Slack Trigger",
+      "webhookId": "1332c0a1-f39d-4447-9d2a-0de3ba47b0a4",
+      "type": "n8n-nodes-base.slackTrigger",
+      "typeVersion": 1,
+      "position": [
+        -448,
+        0
+      ],
+      "credentials": {
+        "slackApi": {
+          "id": "82oxPsjrMmPUTSkl",
+          "name": "Slack account 4"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "6f1d2c0a-1b1e-4a51-9a63-0b7f6c1e2a01",
+              "leftValue": "={{ $json.bot_id }}",
+              "rightValue": "",
+              "operator": {
+                "type": "string",
+                "operation": "notExists",
+                "singleValue": true
+              }
+            },
+            {
+              "id": "6f1d2c0a-1b1e-4a51-9a63-0b7f6c1e2a02",
+              "leftValue": "={{ $json.subtype }}",
+              "rightValue": "",
+              "operator": {
+                "type": "string",
+                "operation": "notExists",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "1a7e3c55-8d2f-4f0e-b1a4-2c9d7e5f6a10",
+      "name": "Ignore Bot Messages",
+      "type": "n8n-nodes-base.filter",
+      "typeVersion": 2.2,
+      "position": [
+        -224,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "a1c4e8f2-3b5d-4c7e-9f10-2a3b4c5d6e01",
+              "name": "recipe",
+              "value": "={{ ($json.text || '').replace(/<[^>]+>/g, '').replace(/\\s+/g, ' ').trim() }}",
+              "type": "string"
+            },
+            {
+              "id": "a1c4e8f2-3b5d-4c7e-9f10-2a3b4c5d6e02",
+              "name": "channel",
+              "value": "={{ $json.channel }}",
+              "type": "string"
+            },
+            {
+              "id": "a1c4e8f2-3b5d-4c7e-9f10-2a3b4c5d6e03",
+              "name": "user",
+              "value": "={{ $json.user }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "09e3a616-46df-4f3e-9fd0-6dc6a2e9ac03",
+      "name": "Edit Fields",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        0,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "c3e5a7b9-1d2f-4a6b-8c0d-3e4f5a6b7c01",
+              "leftValue": "={{ $json.recipe.length }}",
+              "rightValue": 2,
+              "operator": {
+                "type": "number",
+                "operation": "gte"
+              }
+            },
+            {
+              "id": "c3e5a7b9-1d2f-4a6b-8c0d-3e4f5a6b7c02",
+              "leftValue": "={{ /[a-zA-Z\\u0900-\\u0DFF]/.test($json.recipe) }}",
+              "rightValue": "",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "d4f6b8c0-2e3a-4b7c-9d1e-4f5a6b7c8d90",
+      "name": "Recipe Name Given?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        224,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "=You are a helpful cooking assistant replying inside Slack.\n\nThe user typed this recipe name: \"{{ $json.recipe }}\"\n\nIf it is a real dish or recipe:\n- Start with exactly: To make <Recipe Name> you'll need:\n- Then list all the products and ingredients needed, one per line, each starting with \"- \", with approximate quantities (serves 2-3).\n- Group small items together where sensible (e.g. spices) and keep it short and practical - at most 15 lines.\n- Do not add cooking steps, headings, or any closing remarks.\n\nIf it is NOT a recognisable recipe or dish (gibberish, a greeting, a question, or something too vague), reply with exactly one short friendly sentence that starts with \"UNCLEAR:\" and asks the user to rephrase with a dish name, e.g. \"Paneer Butter Masala\".",
+        "batching": {}
+      },
+      "id": "e5a7c9d1-3f4b-4c8d-0e2f-5a6b7c8d9e01",
+      "name": "Basic LLM Chain",
+      "type": "@n8n/n8n-nodes-langchain.chainLlm",
+      "typeVersion": 1.9,
+      "position": [
+        448,
+        -112
+      ]
+    },
+    {
+      "parameters": {
+        "model": {
+          "__rl": true,
+          "value": "gpt-4.1-nano",
+          "mode": "list",
+          "cachedResultName": "gpt-4.1-nano"
+        },
+        "builtInTools": {},
+        "options": {
+          "temperature": 0.3
+        }
+      },
+      "id": "f6b8d0e2-4a5c-4d9e-1f3a-6b7c8d9e0f12",
+      "name": "OpenAI Chat Model",
+      "type": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
+      "typeVersion": 1.3,
+      "position": [
+        448,
+        112
+      ],
+      "credentials": {
+        "openAiApi": {
+          "id": "kCPnyim3Wofe2gvU",
+          "name": "OpenAI account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "// Format the AI response neatly for Slack (mrkdwn)\nconst raw = ($json.text || '').trim();\nconst channel = $('Edit Fields').item.json.channel;\nconst recipe = $('Edit Fields').item.json.recipe;\n\nlet text;\n\nif (!raw) {\n  text = `Sorry, I couldn't work out the ingredients for \"${recipe}\". Please try again with a dish name, e.g. *Paneer Butter Masala*.`;\n} else if (/^UNCLEAR:/i.test(raw)) {\n  text = ':thinking_face: ' + raw.replace(/^UNCLEAR:\\s*/i, '');\n} else {\n  const lines = raw\n    .replace(/\\r\\n/g, '\\n')\n    .replace(/\\*\\*(.+?)\\*\\*/g, '*$1*')        // markdown bold -> Slack bold\n    .split('\\n')\n    .map(l => l.trim())\n    .filter(Boolean)\n    .map(l => l.replace(/^([-*\\u2022]|\\d+[.)])\\s+/, '\\u2022 ')); // bullets -> •\n\n  // Bold the heading line\n  if (lines.length && !lines[0].startsWith('\\u2022')) {\n    lines[0] = ':shopping_trolley: *' + lines[0].replace(/\\*/g, '') + '*';\n  }\n  text = lines.join('\\n');\n}\n\nreturn [{ json: { channel, text } }];"
+      },
+      "id": "a7c9e1f3-5b6d-4e0f-2a4b-7c8d9e0f1a23",
+      "name": "Format for Slack",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        800,
+        -112
+      ]
+    },
+    {
+      "parameters": {
+        "select": "channel",
+        "channelId": {
+          "__rl": true,
+          "mode": "id",
+          "value": "={{ $json.channel }}"
+        },
+        "text": "={{ $json.text }}",
+        "otherOptions": {
+          "includeLinkToWorkflow": false
+        }
+      },
+      "id": "b8d0f2a4-6c7e-4f1a-3b5c-8d9e0f1a2b34",
+      "name": "Send Ingredient List",
+      "webhookId": "c2e4a6b8-0d1f-4a3b-5c7d-9e0f1a2b3c45",
+      "type": "n8n-nodes-base.slack",
+      "typeVersion": 2.3,
+      "position": [
+        1024,
+        -112
+      ],
+      "credentials": {
+        "slackApi": {
+          "id": "82oxPsjrMmPUTSkl",
+          "name": "Slack account 4"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "select": "channel",
+        "channelId": {
+          "__rl": true,
+          "mode": "id",
+          "value": "={{ $json.channel }}"
+        },
+        "text": ":wave: I didn't catch a recipe name there. Please type the name of a dish, e.g. *Paneer Butter Masala*, and I'll list everything you need to make it.",
+        "otherOptions": {
+          "includeLinkToWorkflow": false
+        }
+      },
+      "id": "c9e1a3b5-7d8f-4a2b-4c6d-9e0f1a2b3c56",
+      "name": "Ask User to Rephrase",
+      "webhookId": "d3f5b7c9-1e2a-4b4c-6d8e-0f1a2b3c4d67",
+      "type": "n8n-nodes-base.slack",
+      "typeVersion": 2.3,
+      "position": [
+        448,
+        288
+      ],
+      "credentials": {
+        "slackApi": {
+          "id": "82oxPsjrMmPUTSkl",
+          "name": "Slack account 4"
+        }
+      }
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Slack Trigger": {
+      "main": [
+        [
+          {
+            "node": "Ignore Bot Messages",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Ignore Bot Messages": {
+      "main": [
+        [
+          {
+            "node": "Edit Fields",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Edit Fields": {
+      "main": [
+        [
+          {
+            "node": "Recipe Name Given?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Recipe Name Given?": {
+      "main": [
+        [
+          {
+            "node": "Basic LLM Chain",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Ask User to Rephrase",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "OpenAI Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "Basic LLM Chain",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Basic LLM Chain": {
+      "main": [
+        [
+          {
+            "node": "Format for Slack",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Format for Slack": {
+      "main": [
+        [
+          {
+            "node": "Send Ingredient List",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate"
+  },
+  "versionId": "5e2a336f-8b3b-4bf2-bae0-fcd3ee34221f",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "40d345d7740cb9a58080e24b49b2f1199646adef57f50bc0af758d45264b3de6"
+  },
+  "nodeGroups": [],
+  "id": "KuT6G4HMUNBGuokW",
+  "tags": []
+}
